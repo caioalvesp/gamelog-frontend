@@ -3,11 +3,6 @@ let usuarios = [];
 let activeUserId = null;
 let sortState = { column: null, direction: 'asc' };
 
-/*
-  --------------------------------------------------------------------------------------
-  Jogos — GET
-  --------------------------------------------------------------------------------------
-*/
 const getList = async () => {
   fetch('http://127.0.0.1:8000/jogos', { method: 'get' })
     .then(r => r.json())
@@ -25,12 +20,6 @@ const getList = async () => {
     .catch(err => console.error('Error:', err));
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Jogos — POST
-  --------------------------------------------------------------------------------------
-*/
 const postItem = async (inputJogo, inputNota, inputPlataforma, inputZerado) => {
   const formData = new FormData();
   formData.append('nome', inputJogo);
@@ -46,12 +35,6 @@ const postItem = async (inputJogo, inputNota, inputPlataforma, inputZerado) => {
     .catch(err => console.error('Error:', err));
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Jogos — Botão de remoção por linha
-  --------------------------------------------------------------------------------------
-*/
 const insertButton = (parent) => {
   let span = document.createElement("span");
   span.className = "close";
@@ -76,24 +59,12 @@ const removeElement = () => {
   }
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Jogos — DELETE
-  --------------------------------------------------------------------------------------
-*/
 const deleteItem = (item) => {
   fetch('http://127.0.0.1:8000/jogo?id=' + item, { method: 'delete' })
     .then(r => r.json())
     .catch(err => console.error('Error:', err));
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Jogos — Adicionar novo item (com associação a usuário opcional)
-  --------------------------------------------------------------------------------------
-*/
 const newItem = async () => {
   const inputJogo = document.getElementById("newInput").value;
   const inputNota = document.getElementById("newRating").value;
@@ -121,12 +92,6 @@ const insertList = (idJogo, nomeJogo, nota, plataforma, zerado) => {
   renderTable();
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Usuários — GET
-  --------------------------------------------------------------------------------------
-*/
 const getUsuarios = async () => {
   fetch('http://127.0.0.1:8000/usuarios', { method: 'get' })
     .then(r => r.json())
@@ -138,12 +103,6 @@ const getUsuarios = async () => {
     .catch(err => console.error('Error:', err));
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Usuários — POST
-  --------------------------------------------------------------------------------------
-*/
 const addUsuario = async () => {
   const input = document.getElementById('newUsuario');
   const nome = input.value.trim();
@@ -164,12 +123,6 @@ const addUsuario = async () => {
     .catch(err => console.error('Error:', err));
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Usuários — DELETE
-  --------------------------------------------------------------------------------------
-*/
 const deleteUsuario = async (id) => {
   if (!confirm("Remover usuário?")) return;
 
@@ -185,12 +138,6 @@ const deleteUsuario = async (id) => {
     .catch(err => console.error('Error:', err));
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Usuários — Renderizar chips
-  --------------------------------------------------------------------------------------
-*/
 const updateAddGameState = () => {
   const btn = document.getElementById('addJogoBtn');
   const hint = document.getElementById('semUsuarioHint');
@@ -229,12 +176,6 @@ const renderUsuarios = () => {
   updateAddGameState();
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Usuários — Atualizar dropdowns (formulário e filtro)
-  --------------------------------------------------------------------------------------
-*/
 const updateUsuarioOptions = () => {
   const select = document.getElementById('filterUsuario');
   const current = select.value;
@@ -248,12 +189,6 @@ const updateUsuarioOptions = () => {
   select.value = current;
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Usuários — Associar jogo a usuário
-  --------------------------------------------------------------------------------------
-*/
 const associarJogoUsuario = async (usuarioId, jogoId) => {
   const formData = new FormData();
   formData.append('usuario_id', usuarioId);
@@ -268,12 +203,6 @@ const associarJogoUsuario = async (usuarioId, jogoId) => {
     .catch(err => console.error('Error:', err));
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Tabela — Atualizar dropdown de plataformas
-  --------------------------------------------------------------------------------------
-*/
 const updatePlatformOptions = () => {
   const select = document.getElementById('filterPlatform');
   const current = select.value;
@@ -288,12 +217,6 @@ const updatePlatformOptions = () => {
   if (platforms.includes(current)) select.value = current;
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Tabela — Renderizar com filtros e ordenação
-  --------------------------------------------------------------------------------------
-*/
 const renderTable = () => {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const platform = document.getElementById('filterPlatform').value;
@@ -338,12 +261,6 @@ const renderTable = () => {
   removeElement();
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Tabela — Ordenação por coluna
-  --------------------------------------------------------------------------------------
-*/
 const sortTable = (column) => {
   if (sortState.column === column) {
     sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
@@ -365,12 +282,6 @@ const updateSortArrows = () => {
   });
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Autocomplete de usuário (seção de usuários)
-  --------------------------------------------------------------------------------------
-*/
 const buildDropdown = (filter = '') => {
   const dropdown = document.getElementById('userDropdown');
   const matches = (filter
@@ -432,11 +343,6 @@ document.getElementById('newUsuario').addEventListener('blur', () => {
   document.getElementById('userDropdown').classList.remove('open');
 });
 
-/*
-  --------------------------------------------------------------------------------------
-  Autocomplete de jogo (formulário)
-  --------------------------------------------------------------------------------------
-*/
 const buildGameDropdown = (filter = '') => {
   const dropdown = document.getElementById('gameDropdown');
   const seen = new Set();
@@ -483,20 +389,10 @@ document.getElementById('newInput').addEventListener('blur', () => {
   document.getElementById('gameDropdown').classList.remove('open');
 });
 
-/*
-  --------------------------------------------------------------------------------------
-  Listeners dos filtros
-  --------------------------------------------------------------------------------------
-*/
 document.getElementById('searchInput').addEventListener('input', renderTable);
 document.getElementById('filterPlatform').addEventListener('change', renderTable);
 document.getElementById('filterZerado').addEventListener('change', renderTable);
 document.getElementById('filterUsuario').addEventListener('change', renderTable);
 
-/*
-  --------------------------------------------------------------------------------------
-  Carregamento inicial
-  --------------------------------------------------------------------------------------
-*/
 getList();
 getUsuarios();
