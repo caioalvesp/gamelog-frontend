@@ -1,9 +1,11 @@
 let games = [];
+let usuarios = [];
+let activeUserId = null;
 let sortState = { column: null, direction: 'asc' };
 
 /*
   --------------------------------------------------------------------------------------
-  Função para obter a lista existente do servidor via requisição GET
+  Jogos — GET
   --------------------------------------------------------------------------------------
 */
 const getList = async () => {
@@ -23,12 +25,10 @@ const getList = async () => {
     .catch(err => console.error('Error:', err));
 }
 
-getList();
-
 
 /*
   --------------------------------------------------------------------------------------
-  Função para colocar um item na lista do servidor via requisição POST
+  Jogos — POST
   --------------------------------------------------------------------------------------
 */
 const postItem = async (inputJogo, inputNota, inputPlataforma, inputZerado) => {
@@ -49,7 +49,7 @@ const postItem = async (inputJogo, inputNota, inputPlataforma, inputZerado) => {
 
 /*
   --------------------------------------------------------------------------------------
-  Função para criar um botão close para cada item da lista
+  Jogos — Botão de remoção por linha
   --------------------------------------------------------------------------------------
 */
 const insertButton = (parent) => {
@@ -59,12 +59,6 @@ const insertButton = (parent) => {
   parent.appendChild(span);
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Função para remover um item da lista de acordo com o click no botão close
-  --------------------------------------------------------------------------------------
-*/
 const removeElement = () => {
   let close = document.getElementsByClassName("close");
   for (let i = 0; i < close.length; i++) {
@@ -85,7 +79,7 @@ const removeElement = () => {
 
 /*
   --------------------------------------------------------------------------------------
-  Função para deletar um item da lista do servidor via requisição DELETE
+  Jogos — DELETE
   --------------------------------------------------------------------------------------
 */
 const deleteItem = (item) => {
@@ -97,36 +91,32 @@ const deleteItem = (item) => {
 
 /*
   --------------------------------------------------------------------------------------
-  Função para adicionar um novo item com nome, nota, plataforma e zerado
+  Jogos — Adicionar novo item (com associação a usuário opcional)
   --------------------------------------------------------------------------------------
 */
 const newItem = async () => {
-  let inputJogo = document.getElementById("newInput").value;
-  let inputNota = document.getElementById("newRating").value;
-  let inputPlataforma = document.getElementById("newPlatform").value;
-  let inputZerado = document.getElementById("newFinished").value;
+  const inputJogo = document.getElementById("newInput").value;
+  const inputNota = document.getElementById("newRating").value;
+  const inputPlataforma = document.getElementById("newPlatform").value;
+  const inputZerado = document.getElementById("newFinished").checked;
+  if (!inputJogo) { alert("Escreva o nome de um jogo!"); return; }
+  if (!activeUserId) { alert("Selecione um usuário na seção acima antes de adicionar um jogo!"); return; }
 
-  if (inputJogo === '') {
-    alert("Escreva o nome de um jogo!");
-  } else {
-    const response = await postItem(inputJogo, inputNota, inputPlataforma, inputZerado);
-    insertList(response.id, inputJogo, inputNota, inputPlataforma, inputZerado);
-    alert("Jogo adicionado!");
-  }
+  const response = await postItem(inputJogo, inputNota, inputPlataforma, inputZerado);
+  if (!response || !response.id) { alert("Erro ao salvar o jogo."); return; }
+
+  await associarJogoUsuario(activeUserId, response.id);
+
+  insertList(response.id, inputJogo, inputNota, inputPlataforma, inputZerado);
+  alert("Jogo adicionado!");
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Função para inserir um item na lista em memória e atualizar a tabela
-  --------------------------------------------------------------------------------------
-*/
 const insertList = (idJogo, nomeJogo, nota, plataforma, zerado) => {
   games.push({ id: idJogo, nome: nomeJogo, nota, plataforma, zerado });
   document.getElementById("newInput").value = "";
   document.getElementById("newRating").value = "";
   document.getElementById("newPlatform").value = "";
-  document.getElementById("newFinished").value = "";
+  document.getElementById("newFinished").checked = false;
   updatePlatformOptions();
   renderTable();
 }
@@ -134,7 +124,154 @@ const insertList = (idJogo, nomeJogo, nota, plataforma, zerado) => {
 
 /*
   --------------------------------------------------------------------------------------
-  Atualiza as opções do dropdown de plataformas com base nos dados atuais
+  Usuários — GET
+  --------------------------------------------------------------------------------------
+*/
+const getUsuarios = async () => {
+  fetch('http://127.0.0.1:8000/usuarios', { method: 'get' })
+    .then(r => r.json())
+    .then(data => {
+      usuarios = data.usuarios;
+      renderUsuarios();
+      updateUsuarioOptions();
+    })
+    .catch(err => console.error('Error:', err));
+}
+
+
+/*
+  --------------------------------------------------------------------------------------
+  Usuários — POST
+  --------------------------------------------------------------------------------------
+*/
+const addUsuario = async () => {
+  const input = document.getElementById('newUsuario');
+  const nome = input.value.trim();
+  if (!nome) { alert("Escreva o nome do usuário!"); return; }
+
+  const formData = new FormData();
+  formData.append('nome', nome);
+
+  fetch('http://127.0.0.1:8000/usuario', { method: 'post', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      usuarios.push({ id: data.id, nome: data.nome, jogos: data.jogos || [] });
+      activeUserId = data.id;
+      input.value = '';
+      renderUsuarios();
+      updateUsuarioOptions();
+    })
+    .catch(err => console.error('Error:', err));
+}
+
+
+/*
+  --------------------------------------------------------------------------------------
+  Usuários — DELETE
+  --------------------------------------------------------------------------------------
+*/
+const deleteUsuario = async (id) => {
+  if (!confirm("Remover usuário?")) return;
+
+  fetch('http://127.0.0.1:8000/usuario?id=' + id, { method: 'delete' })
+    .then(r => r.json())
+    .then(() => {
+      if (activeUserId === id) activeUserId = null;
+      usuarios = usuarios.filter(u => u.id !== id);
+      renderUsuarios();
+      updateUsuarioOptions();
+      renderTable();
+    })
+    .catch(err => console.error('Error:', err));
+}
+
+
+/*
+  --------------------------------------------------------------------------------------
+  Usuários — Renderizar chips
+  --------------------------------------------------------------------------------------
+*/
+const updateAddGameState = () => {
+  const btn = document.getElementById('addJogoBtn');
+  const hint = document.getElementById('semUsuarioHint');
+  const noActive = !activeUserId;
+  btn.disabled = noActive;
+  if (noActive) {
+    hint.textContent = usuarios.length === 0
+      ? 'Cadastre um usuário acima antes de adicionar jogos.'
+      : 'Selecione um usuário acima para adicionar jogos.';
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+const renderActiveUser = () => {
+  const container = document.getElementById('activeUser');
+  container.innerHTML = '';
+  if (!activeUserId) return;
+  const u = usuarios.find(u => u.id === activeUserId);
+  if (!u) return;
+  const chip = document.createElement('div');
+  chip.className = 'usuario-chip active';
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = u.nome;
+  chip.appendChild(nameSpan);
+  container.appendChild(chip);
+}
+
+const renderUsuarios = () => {
+  renderActiveUser();
+  const dropdown = document.getElementById('userDropdown');
+  if (dropdown.classList.contains('open')) {
+    buildDropdown(document.getElementById('newUsuario').value);
+  }
+  updateAddGameState();
+}
+
+
+/*
+  --------------------------------------------------------------------------------------
+  Usuários — Atualizar dropdowns (formulário e filtro)
+  --------------------------------------------------------------------------------------
+*/
+const updateUsuarioOptions = () => {
+  const select = document.getElementById('filterUsuario');
+  const current = select.value;
+  select.innerHTML = '<option value="">Todos os usuários</option>';
+  usuarios.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.id;
+    opt.textContent = u.nome;
+    select.appendChild(opt);
+  });
+  select.value = current;
+}
+
+
+/*
+  --------------------------------------------------------------------------------------
+  Usuários — Associar jogo a usuário
+  --------------------------------------------------------------------------------------
+*/
+const associarJogoUsuario = async (usuarioId, jogoId) => {
+  const formData = new FormData();
+  formData.append('usuario_id', usuarioId);
+  formData.append('jogo_id', jogoId);
+
+  return fetch('http://127.0.0.1:8000/usuario/jogo', { method: 'post', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      const usuario = usuarios.find(u => String(u.id) === String(usuarioId));
+      if (usuario) usuario.jogos = data.jogos;
+    })
+    .catch(err => console.error('Error:', err));
+}
+
+
+/*
+  --------------------------------------------------------------------------------------
+  Tabela — Atualizar dropdown de plataformas
   --------------------------------------------------------------------------------------
 */
 const updatePlatformOptions = () => {
@@ -154,18 +291,23 @@ const updatePlatformOptions = () => {
 
 /*
   --------------------------------------------------------------------------------------
-  Renderiza a tabela aplicando os filtros e a ordenação atuais
+  Tabela — Renderizar com filtros e ordenação
   --------------------------------------------------------------------------------------
 */
 const renderTable = () => {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const platform = document.getElementById('filterPlatform').value;
   const zeradoFilter = document.getElementById('filterZerado').value;
+  const usuarioFilter = document.getElementById('filterUsuario').value;
 
   let filtered = games.filter(g => {
     if (search && !String(g.nome).toLowerCase().includes(search)) return false;
     if (platform && g.plataforma !== platform) return false;
     if (zeradoFilter !== '' && String(g.zerado) !== zeradoFilter) return false;
+    if (usuarioFilter) {
+      const usuario = usuarios.find(u => String(u.id) === usuarioFilter);
+      if (!usuario || !usuario.jogos.some(j => j.id === g.id)) return false;
+    }
     return true;
   });
 
@@ -188,7 +330,7 @@ const renderTable = () => {
     row.dataset.id = game.id;
     ['nome', 'nota', 'plataforma', 'zerado'].forEach((key, i) => {
       const cel = row.insertCell(i);
-      cel.textContent = game[key];
+      cel.textContent = key === 'zerado' ? (game[key] ? '☑' : '☐') : game[key];
     });
     insertButton(row.insertCell(-1));
   });
@@ -199,7 +341,7 @@ const renderTable = () => {
 
 /*
   --------------------------------------------------------------------------------------
-  Ordena a tabela pela coluna clicada (toggle asc/desc)
+  Tabela — Ordenação por coluna
   --------------------------------------------------------------------------------------
 */
 const sortTable = (column) => {
@@ -213,12 +355,6 @@ const sortTable = (column) => {
   renderTable();
 }
 
-
-/*
-  --------------------------------------------------------------------------------------
-  Atualiza os indicadores visuais de ordenação nos cabeçalhos
-  --------------------------------------------------------------------------------------
-*/
 const updateSortArrows = () => {
   ['nome', 'nota', 'plataforma', 'zerado'].forEach(col => {
     const arrow = document.getElementById(`arrow-${col}`);
@@ -229,6 +365,138 @@ const updateSortArrows = () => {
   });
 }
 
+
+/*
+  --------------------------------------------------------------------------------------
+  Autocomplete de usuário (seção de usuários)
+  --------------------------------------------------------------------------------------
+*/
+const buildDropdown = (filter = '') => {
+  const dropdown = document.getElementById('userDropdown');
+  const matches = (filter
+    ? usuarios.filter(u => u.nome.toLowerCase().includes(filter.toLowerCase()))
+    : [...usuarios]
+  ).sort((a, b) => a.nome.localeCompare(b.nome));
+
+  dropdown.innerHTML = '';
+
+  if (!matches.length) {
+    const li = document.createElement('li');
+    li.className = 'user-dropdown-empty';
+    li.textContent = 'Nenhum usuário encontrado';
+    dropdown.appendChild(li);
+    return;
+  }
+
+  matches.forEach(u => {
+    const li = document.createElement('li');
+    if (u.id === activeUserId) li.classList.add('dropdown-active');
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = u.nome;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'dropdown-del';
+    delBtn.textContent = '×';
+    delBtn.title = 'Remover usuário';
+    delBtn.onmousedown = e => {
+      e.stopPropagation();
+      deleteUsuario(u.id);
+    };
+
+    li.onmousedown = () => {
+      activeUserId = u.id;
+      document.getElementById('newUsuario').value = '';
+      document.getElementById('userDropdown').classList.remove('open');
+      renderActiveUser();
+      updateAddGameState();
+    };
+
+    li.appendChild(nameSpan);
+    li.appendChild(delBtn);
+    dropdown.appendChild(li);
+  });
+}
+
+document.getElementById('newUsuario').addEventListener('focus', () => {
+  buildDropdown(document.getElementById('newUsuario').value);
+  document.getElementById('userDropdown').classList.add('open');
+});
+
+document.getElementById('newUsuario').addEventListener('input', e => {
+  buildDropdown(e.target.value);
+  document.getElementById('userDropdown').classList.add('open');
+});
+
+document.getElementById('newUsuario').addEventListener('blur', () => {
+  document.getElementById('userDropdown').classList.remove('open');
+});
+
+/*
+  --------------------------------------------------------------------------------------
+  Autocomplete de jogo (formulário)
+  --------------------------------------------------------------------------------------
+*/
+const buildGameDropdown = (filter = '') => {
+  const dropdown = document.getElementById('gameDropdown');
+  const seen = new Set();
+  const unique = games.filter(g => {
+    const key = g.nome.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const matches = (filter
+    ? unique.filter(g => g.nome.toLowerCase().includes(filter.toLowerCase()))
+    : [...unique]
+  ).sort((a, b) => a.nome.localeCompare(b.nome));
+
+  dropdown.innerHTML = '';
+  if (!matches.length) { dropdown.classList.remove('open'); return; }
+
+  matches.forEach(g => {
+    const li = document.createElement('li');
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = g.nome;
+    li.appendChild(nameSpan);
+    li.onmousedown = () => {
+      document.getElementById('newInput').value = g.nome;
+      document.getElementById('newRating').value = g.nota ?? '';
+      document.getElementById('newPlatform').value = g.plataforma ?? '';
+      document.getElementById('newFinished').checked = !!g.zerado;
+      dropdown.classList.remove('open');
+    };
+    dropdown.appendChild(li);
+  });
+  dropdown.classList.add('open');
+}
+
+document.getElementById('newInput').addEventListener('focus', () => {
+  buildGameDropdown(document.getElementById('newInput').value);
+});
+
+document.getElementById('newInput').addEventListener('input', e => {
+  buildGameDropdown(e.target.value);
+});
+
+document.getElementById('newInput').addEventListener('blur', () => {
+  document.getElementById('gameDropdown').classList.remove('open');
+});
+
+/*
+  --------------------------------------------------------------------------------------
+  Listeners dos filtros
+  --------------------------------------------------------------------------------------
+*/
 document.getElementById('searchInput').addEventListener('input', renderTable);
 document.getElementById('filterPlatform').addEventListener('change', renderTable);
 document.getElementById('filterZerado').addEventListener('change', renderTable);
+document.getElementById('filterUsuario').addEventListener('change', renderTable);
+
+/*
+  --------------------------------------------------------------------------------------
+  Carregamento inicial
+  --------------------------------------------------------------------------------------
+*/
+getList();
+getUsuarios();

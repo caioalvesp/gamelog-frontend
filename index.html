@@ -11,42 +11,68 @@
   <link rel="stylesheet"
         href="styles.css">
 
-  <title>Projeto</title>
+  <title>GameLog</title>
 </head>
 
 <body>
   <!-- Cabeçalho de informações do sistema -->
   <header>
     <div class="title">
-      <h1>Lista de Compras</h1>
+      <h1>GameLog</h1>
     </div>
     <div class="banner">
-      <img src="https://images.contentstack.io/v3/assets/blt45c082eaf9747747/bltbcca43584b660977/5de0b6aa703bd50385f981ad/Header-5.jpg?width=1200&height=630&fit=crop"
+      <img src="https://images.pexels.com/photos/34543002/pexels-photo-34543002.jpeg"
            alt="y">
     </div>
   </header>
 
+  <!-- Gerenciamento de usuários -->
+  <section class="usuarios">
+    <div class="usuarios-add">
+      <div class="user-autocomplete">
+        <input type="text"
+               id="newUsuario"
+               placeholder="Buscar ou criar usuário..."
+               autocomplete="off">
+        <ul class="user-dropdown" id="userDropdown"></ul>
+      </div>
+      <button onclick="addUsuario()"
+              class="addBtn">Adicionar Usuário</button>
+    </div>
+    <div id="activeUser" class="active-user-display"></div>
+  </section>
+
   <!-- Opções para adicionar um novo item -->
   <section class="newItem">
-    <input type="text"
-           id="newInput"
-           placeholder="Adicionar novo item:">
+    <div class="user-autocomplete">
+      <input type="text"
+             id="newInput"
+             placeholder="Adicionar novo jogo:"
+             autocomplete="off">
+      <ul class="user-dropdown" id="gameDropdown"></ul>
+    </div>
     <input type="text"
            id="newRating"
            placeholder="Nota:">
     <input type="text"
            id="newPlatform"
            placeholder="Plataforma:">
-    <input type="text"
-           id="newFinished"
-           placeholder="Zerado:">
+    <label class="checkbox-label">
+      <input type="checkbox"
+             id="newFinished"> Zerado
+    </label>
+    <p id="semUsuarioHint"
+       class="hint-msg">Cadastre um usuário acima antes de adicionar jogos.</p>
     <button onclick="newItem()"
-            class="addBtn">Adicionar</button>
+            class="addBtn"
+            id="addJogoBtn">Adicionar</button>
   </section>
 
   <!-- Filtros da tabela -->
   <section class="filters">
-    <input type="text" id="searchInput" placeholder="Buscar por nome...">
+    <input type="text"
+           id="searchInput"
+           placeholder="Buscar por nome...">
     <select id="filterPlatform">
       <option value="">Todas as plataformas</option>
     </select>
@@ -55,16 +81,23 @@
       <option value="true">Zerado</option>
       <option value="false">Não zerado</option>
     </select>
+    <select id="filterUsuario">
+      <option value="">Todos os usuários</option>
+    </select>
   </section>
 
   <!-- Tabela com items existentes -->
   <section class="items">
     <table id="myTable">
       <tr>
-        <th onclick="sortTable('nome')">Nome <span class="sort-arrow" id="arrow-nome"></span></th>
-        <th onclick="sortTable('nota')">Nota <span class="sort-arrow" id="arrow-nota"></span></th>
-        <th onclick="sortTable('plataforma')">Plataforma <span class="sort-arrow" id="arrow-plataforma"></span></th>
-        <th onclick="sortTable('zerado')">Zerado <span class="sort-arrow" id="arrow-zerado"></span></th>
+        <th onclick="sortTable('nome')">Nome <span class="sort-arrow"
+                id="arrow-nome"></span></th>
+        <th onclick="sortTable('nota')">Nota <span class="sort-arrow"
+                id="arrow-nota"></span></th>
+        <th onclick="sortTable('plataforma')">Plataforma <span class="sort-arrow"
+                id="arrow-plataforma"></span></th>
+        <th onclick="sortTable('zerado')">Zerado <span class="sort-arrow"
+                id="arrow-zerado"></span></th>
         <th><img src="https://cdn-icons-png.flaticon.com/512/126/126468.png"
                width="15px"
                height="15px"></th>
