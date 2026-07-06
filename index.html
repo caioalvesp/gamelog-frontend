@@ -81,9 +81,6 @@
       <option value="true">Zerado</option>
       <option value="false">Não zerado</option>
     </select>
-    <select id="filterUsuario">
-      <option value="">Todos os usuários</option>
-    </select>
   </section>
 
   <!-- Tabela com items existentes -->
@@ -92,18 +89,24 @@
       <tr>
         <th onclick="sortTable('nome')">Nome <span class="sort-arrow"
                 id="arrow-nome"></span></th>
-        <th onclick="sortTable('nota')">Nota <span class="sort-arrow"
-                id="arrow-nota"></span></th>
         <th onclick="sortTable('plataforma')">Plataforma <span class="sort-arrow"
                 id="arrow-plataforma"></span></th>
-        <th onclick="sortTable('zerado')">Zerado <span class="sort-arrow"
-                id="arrow-zerado"></span></th>
         <th><img src="https://cdn-icons-png.flaticon.com/512/126/126468.png"
                width="15px"
                height="15px"></th>
       </tr>
     </table>
   </section>
+
+  <!-- Modal de detalhes do jogo -->
+  <div id="gameModalOverlay" class="modal-overlay">
+    <div class="modal-panel">
+      <button class="modal-close" id="modalCloseBtn" aria-label="Fechar">×</button>
+      <h2 id="modalGameName"></h2>
+      <p id="modalPlatform" class="modal-platform"></p>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
 
   <script src="scripts.js"></script>
 </body>

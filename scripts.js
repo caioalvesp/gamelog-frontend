@@ -10,9 +10,7 @@ const getList = async () => {
       games = data.jogos.map(item => ({
         id: item.id,
         nome: item.nome,
-        plataforma: item.plataforma,
-        nota: item.nota,
-        zerado: item.zerado
+        plataforma: item.plataforma
       }));
       updatePlatformOptions();
       renderTable();
@@ -20,12 +18,10 @@ const getList = async () => {
     .catch(err => console.error('Error:', err));
 }
 
-const postItem = async (inputJogo, inputNota, inputPlataforma, inputZerado) => {
+const postItem = async (inputJogo, inputPlataforma) => {
   const formData = new FormData();
   formData.append('nome', inputJogo);
   formData.append('plataforma', inputPlataforma);
-  formData.append('zerado', inputZerado);
-  formData.append('nota', inputNota);
 
   return fetch('http://127.0.0.1:8000/jogos', {
     method: 'post',
@@ -45,7 +41,8 @@ const insertButton = (parent) => {
 const removeElement = () => {
   let close = document.getElementsByClassName("close");
   for (let i = 0; i < close.length; i++) {
-    close[i].onclick = function () {
+    close[i].onclick = function (e) {
+      e.stopPropagation();
       const row = this.parentElement.parentElement;
       const idJogo = row.dataset.id;
       if (confirm("Você tem certeza?")) {
@@ -66,30 +63,38 @@ const deleteItem = (item) => {
 }
 
 const newItem = async () => {
-  const inputJogo = document.getElementById("newInput").value;
+  const inputJogo = document.getElementById("newInput").value.trim();
   const inputNota = document.getElementById("newRating").value;
   const inputPlataforma = document.getElementById("newPlatform").value;
   const inputZerado = document.getElementById("newFinished").checked;
   if (!inputJogo) { alert("Escreva o nome de um jogo!"); return; }
   if (!activeUserId) { alert("Selecione um usuário na seção acima antes de adicionar um jogo!"); return; }
 
-  const response = await postItem(inputJogo, inputNota, inputPlataforma, inputZerado);
-  if (!response || !response.id) { alert("Erro ao salvar o jogo."); return; }
+  let jogoId;
+  const existing = games.find(g => g.nome.toLowerCase() === inputJogo.toLowerCase());
+  if (existing) {
+    jogoId = existing.id;
+  } else {
+    const response = await postItem(inputJogo, inputPlataforma);
+    if (!response || !response.id) { alert("Erro ao salvar o jogo."); return; }
+    jogoId = response.id;
+    insertList(jogoId, inputJogo, inputPlataforma);
+  }
 
-  await associarJogoUsuario(activeUserId, response.id);
+  const result = await associarJogoUsuario(activeUserId, jogoId, inputZerado, inputNota);
+  if (!result.ok) { alert(result.message || "Erro ao associar jogo ao usuário."); return; }
 
-  insertList(response.id, inputJogo, inputNota, inputPlataforma, inputZerado);
-  alert("Jogo adicionado!");
-}
-
-const insertList = (idJogo, nomeJogo, nota, plataforma, zerado) => {
-  games.push({ id: idJogo, nome: nomeJogo, nota, plataforma, zerado });
   document.getElementById("newInput").value = "";
   document.getElementById("newRating").value = "";
   document.getElementById("newPlatform").value = "";
   document.getElementById("newFinished").checked = false;
-  updatePlatformOptions();
   renderTable();
+  alert("Jogo adicionado!");
+}
+
+const insertList = (idJogo, nomeJogo, plataforma) => {
+  games.push({ id: idJogo, nome: nomeJogo, plataforma });
+  updatePlatformOptions();
 }
 
 const getUsuarios = async () => {
@@ -98,7 +103,6 @@ const getUsuarios = async () => {
     .then(data => {
       usuarios = data.usuarios;
       renderUsuarios();
-      updateUsuarioOptions();
     })
     .catch(err => console.error('Error:', err));
 }
@@ -118,7 +122,7 @@ const addUsuario = async () => {
       activeUserId = data.id;
       input.value = '';
       renderUsuarios();
-      updateUsuarioOptions();
+      renderTable();
     })
     .catch(err => console.error('Error:', err));
 }
@@ -132,7 +136,6 @@ const deleteUsuario = async (id) => {
       if (activeUserId === id) activeUserId = null;
       usuarios = usuarios.filter(u => u.id !== id);
       renderUsuarios();
-      updateUsuarioOptions();
       renderTable();
     })
     .catch(err => console.error('Error:', err));
@@ -141,6 +144,7 @@ const deleteUsuario = async (id) => {
 const updateAddGameState = () => {
   const btn = document.getElementById('addJogoBtn');
   const hint = document.getElementById('semUsuarioHint');
+  const filterZeradoSelect = document.getElementById('filterZerado');
   const noActive = !activeUserId;
   btn.disabled = noActive;
   if (noActive) {
@@ -151,6 +155,15 @@ const updateAddGameState = () => {
   } else {
     hint.style.display = 'none';
   }
+  filterZeradoSelect.disabled = noActive;
+  if (noActive) filterZeradoSelect.value = '';
+}
+
+const clearActiveUser = () => {
+  activeUserId = null;
+  renderActiveUser();
+  updateAddGameState();
+  renderTable();
 }
 
 const renderActiveUser = () => {
@@ -164,6 +177,12 @@ const renderActiveUser = () => {
   const nameSpan = document.createElement('span');
   nameSpan.textContent = u.nome;
   chip.appendChild(nameSpan);
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'usuario-chip-clear';
+  clearBtn.textContent = '×';
+  clearBtn.title = 'Limpar seleção';
+  clearBtn.onclick = clearActiveUser;
+  chip.appendChild(clearBtn);
   container.appendChild(chip);
 }
 
@@ -176,31 +195,20 @@ const renderUsuarios = () => {
   updateAddGameState();
 }
 
-const updateUsuarioOptions = () => {
-  const select = document.getElementById('filterUsuario');
-  const current = select.value;
-  select.innerHTML = '<option value="">Todos os usuários</option>';
-  usuarios.forEach(u => {
-    const opt = document.createElement('option');
-    opt.value = u.id;
-    opt.textContent = u.nome;
-    select.appendChild(opt);
-  });
-  select.value = current;
-}
-
-const associarJogoUsuario = async (usuarioId, jogoId) => {
+const associarJogoUsuario = async (usuarioId, jogoId, zerado = false, nota = '') => {
   const formData = new FormData();
   formData.append('usuario_id', usuarioId);
   formData.append('jogo_id', jogoId);
+  formData.append('zerado', zerado);
+  if (nota !== '') formData.append('nota', nota);
 
-  return fetch('http://127.0.0.1:8000/usuario/jogo', { method: 'post', body: formData })
-    .then(r => r.json())
-    .then(data => {
-      const usuario = usuarios.find(u => String(u.id) === String(usuarioId));
-      if (usuario) usuario.jogos = data.jogos;
-    })
-    .catch(err => console.error('Error:', err));
+  const response = await fetch('http://127.0.0.1:8000/usuario/jogo', { method: 'post', body: formData });
+  const data = await response.json();
+  if (!response.ok) return { ok: false, message: data.message };
+
+  const usuario = usuarios.find(u => String(u.id) === String(usuarioId));
+  if (usuario) usuario.jogos = data.jogos;
+  return { ok: true };
 }
 
 const updatePlatformOptions = () => {
@@ -221,15 +229,16 @@ const renderTable = () => {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const platform = document.getElementById('filterPlatform').value;
   const zeradoFilter = document.getElementById('filterZerado').value;
-  const usuarioFilter = document.getElementById('filterUsuario').value;
 
   let filtered = games.filter(g => {
     if (search && !String(g.nome).toLowerCase().includes(search)) return false;
     if (platform && g.plataforma !== platform) return false;
-    if (zeradoFilter !== '' && String(g.zerado) !== zeradoFilter) return false;
-    if (usuarioFilter) {
-      const usuario = usuarios.find(u => String(u.id) === usuarioFilter);
-      if (!usuario || !usuario.jogos.some(j => j.id === g.id)) return false;
+
+    if (activeUserId) {
+      const usuario = usuarios.find(u => u.id === activeUserId);
+      const assoc = usuario?.jogos.find(j => j.id === g.id);
+      if (!assoc) return false;
+      if (zeradoFilter !== '' && String(assoc.zerado) !== zeradoFilter) return false;
     }
     return true;
   });
@@ -251,10 +260,10 @@ const renderTable = () => {
   filtered.forEach(game => {
     const row = table.insertRow();
     row.dataset.id = game.id;
-    ['nome', 'nota', 'plataforma', 'zerado'].forEach((key, i) => {
-      const cel = row.insertCell(i);
-      cel.textContent = key === 'zerado' ? (game[key] ? '☑' : '☐') : game[key];
+    ['nome', 'plataforma'].forEach((key, i) => {
+      row.insertCell(i).textContent = game[key];
     });
+    row.addEventListener('click', () => openGameModal(game.id));
     insertButton(row.insertCell(-1));
   });
 
@@ -273,13 +282,49 @@ const sortTable = (column) => {
 }
 
 const updateSortArrows = () => {
-  ['nome', 'nota', 'plataforma', 'zerado'].forEach(col => {
+  ['nome', 'plataforma'].forEach(col => {
     const arrow = document.getElementById(`arrow-${col}`);
     if (!arrow) return;
     arrow.textContent = sortState.column === col
       ? (sortState.direction === 'asc' ? ' ↑' : ' ↓')
       : '';
   });
+}
+
+const openGameModal = (jogoId) => {
+  const game = games.find(g => String(g.id) === String(jogoId));
+  if (!game) return;
+
+  document.getElementById('modalGameName').textContent = game.nome;
+  document.getElementById('modalPlatform').textContent = game.plataforma || 'Plataforma não informada';
+
+  const body = document.getElementById('modalBody');
+
+  if (activeUserId) {
+    const usuario = usuarios.find(u => u.id === activeUserId);
+    const assoc = usuario?.jogos.find(j => j.id === game.id);
+    const nota = assoc?.nota;
+    const zerado = !!assoc?.zerado;
+
+    body.innerHTML = `
+      <p><strong>Nota:</strong> ${nota ?? 'Sem nota'}</p>
+      <p><strong>Zerado:</strong> ${zerado ? 'Sim ☑' : 'Não ☐'}</p>
+    `;
+  } else {
+    const donos = usuarios.filter(u => u.jogos.some(j => j.id === game.id));
+    const zeraram = donos.filter(u => u.jogos.some(j => j.id === game.id && j.zerado));
+
+    body.innerHTML = `
+      <p><strong>${donos.length}</strong> pessoa(s) possuem este jogo</p>
+      <p><strong>${zeraram.length}</strong> zeraram este jogo</p>
+    `;
+  }
+
+  document.getElementById('gameModalOverlay').classList.add('open');
+}
+
+const closeGameModal = () => {
+  document.getElementById('gameModalOverlay').classList.remove('open');
 }
 
 const buildDropdown = (filter = '') => {
@@ -321,6 +366,7 @@ const buildDropdown = (filter = '') => {
       document.getElementById('userDropdown').classList.remove('open');
       renderActiveUser();
       updateAddGameState();
+      renderTable();
     };
 
     li.appendChild(nameSpan);
@@ -367,9 +413,7 @@ const buildGameDropdown = (filter = '') => {
     li.appendChild(nameSpan);
     li.onmousedown = () => {
       document.getElementById('newInput').value = g.nome;
-      document.getElementById('newRating').value = g.nota ?? '';
       document.getElementById('newPlatform').value = g.plataforma ?? '';
-      document.getElementById('newFinished').checked = !!g.zerado;
       dropdown.classList.remove('open');
     };
     dropdown.appendChild(li);
@@ -392,7 +436,14 @@ document.getElementById('newInput').addEventListener('blur', () => {
 document.getElementById('searchInput').addEventListener('input', renderTable);
 document.getElementById('filterPlatform').addEventListener('change', renderTable);
 document.getElementById('filterZerado').addEventListener('change', renderTable);
-document.getElementById('filterUsuario').addEventListener('change', renderTable);
+
+document.getElementById('modalCloseBtn').addEventListener('click', closeGameModal);
+document.getElementById('gameModalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'gameModalOverlay') closeGameModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeGameModal();
+});
 
 getList();
 getUsuarios();

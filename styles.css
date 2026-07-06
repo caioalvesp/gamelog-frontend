@@ -122,6 +122,23 @@ header {
   user-select: none;
 }
 
+.usuario-chip-clear {
+  background: none;
+  border: none;
+  color: #94A3B8;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: 0.2s;
+}
+
+.usuario-chip-clear:hover {
+  opacity: 1;
+  color: #EF4444;
+}
+
 .newItem {
   padding: 24px 40px;
   display: flex;
@@ -350,6 +367,12 @@ header {
   background-color: #0F172A;
 }
 
+.filters select:disabled {
+  background-color: #2B394E;
+  color: #94A3B8;
+  cursor: not-allowed;
+}
+
 .items {
   padding: 36px 0 48px;
   display: flex;
@@ -397,17 +420,8 @@ td {
   text-align: start;
 }
 
-td:nth-child(2) {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  color: #94A3B8;
-  letter-spacing: 0.03em;
-}
-
-td:nth-child(4) {
-  font-size: 17px;
-  text-align: center;
-  color: #94A3B8;
+tr:not(:first-child) td:not(:last-child) {
+  cursor: pointer;
 }
 
 tr:nth-child(even) td {
@@ -448,4 +462,71 @@ th:nth-child(1) {
   font-size: 11px;
   color: #7C3AED;
   margin-left: 3px;
+}
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.7);
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal-panel {
+  position: relative;
+  background-color: #0F172A;
+  border: 1px solid rgba(124, 58, 237, 0.4);
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  padding: 28px 32px;
+  width: 320px;
+  max-width: 90vw;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #94A3B8;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #EF4444;
+}
+
+#modalGameName {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  padding-right: 20px;
+}
+
+.modal-platform {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #94A3B8;
+  margin-bottom: 16px;
+}
+
+.modal-body p {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.modal-body strong {
+  color: #a78bfa;
 }
