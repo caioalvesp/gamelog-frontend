@@ -54,18 +54,20 @@
     <input type="text"
            id="newRating"
            placeholder="Nota:">
-    <input type="text"
-           id="newPlatform"
-           placeholder="Plataforma:">
+    <input type="hidden"
+           id="newPlatform">
+    <select id="newPlataformaZerada">
+      <option value="">Em qual plataforma?</option>
+    </select>
     <label class="checkbox-label">
       <input type="checkbox"
              id="newFinished"> Zerado
     </label>
-    <p id="semUsuarioHint"
-       class="hint-msg">Cadastre um usuário acima antes de adicionar jogos.</p>
     <button onclick="newItem()"
             class="addBtn"
             id="addJogoBtn">Adicionar</button>
+    <p id="semUsuarioHint"
+       class="hint-msg">Cadastre um usuário acima antes de adicionar jogos.</p>
   </section>
 
   <!-- Filtros da tabela -->
@@ -83,27 +85,26 @@
     </select>
   </section>
 
-  <!-- Tabela com items existentes -->
+  <!-- Grade de capas dos jogos -->
   <section class="items">
-    <table id="myTable">
-      <tr>
-        <th onclick="sortTable('nome')">Nome <span class="sort-arrow"
-                id="arrow-nome"></span></th>
-        <th onclick="sortTable('plataforma')">Plataforma <span class="sort-arrow"
-                id="arrow-plataforma"></span></th>
-        <th><img src="https://cdn-icons-png.flaticon.com/512/126/126468.png"
-               width="15px"
-               height="15px"></th>
-      </tr>
-    </table>
+    <div class="items-toolbar">
+      <span>Ordenar por:</span>
+      <button type="button" onclick="sortTable('nome')">Nome <span class="sort-arrow" id="arrow-nome"></span></button>
+      <button type="button" onclick="sortTable('plataforma')">Plataforma <span class="sort-arrow" id="arrow-plataforma"></span></button>
+      <button type="button" onclick="sortTable('nota')" id="sortNotaBtn">Índice GameLog <span class="sort-arrow" id="arrow-nota"></span></button>
+      <button type="button" onclick="sortTable('nota_critica')">Índice Metascore <span class="sort-arrow" id="arrow-nota_critica"></span></button>
+    </div>
+    <div id="gameGrid" class="game-grid"></div>
   </section>
 
   <!-- Modal de detalhes do jogo -->
   <div id="gameModalOverlay" class="modal-overlay">
     <div class="modal-panel">
       <button class="modal-close" id="modalCloseBtn" aria-label="Fechar">×</button>
+      <img id="modalCover" class="modal-cover" alt="" hidden>
       <h2 id="modalGameName"></h2>
       <p id="modalPlatform" class="modal-platform"></p>
+      <p id="modalMeta" class="modal-meta"></p>
       <div id="modalBody" class="modal-body"></div>
     </div>
   </div>
