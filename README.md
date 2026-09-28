@@ -15,9 +15,14 @@ Este repositório é o módulo **Interface** do MVP (Cenário 1.1: Interface ↔
 
 - Cadastro e seleção de usuário ativo (autocomplete com busca).
 - Busca de um jogo por nome com sugestões vindas tanto da base local quanto da RAWG (com miniatura da capa) — ao escolher uma sugestão da RAWG, capa, data de lançamento, desenvolvedora e nota da crítica são salvas automaticamente junto com o jogo.
-- Grade de capas dos jogos (estilo Letterboxd/Backloggd), com busca, filtro por plataforma e por status "zerado".
-- Modal de detalhes do jogo: mostra capa e metadados; permite editar a nota pessoal e marcar como zerado.
-- Ordenação por nome ou plataforma.
+- Ao adicionar um jogo à coleção, você escolhe **em qual plataforma jogou/zerou** (select com as plataformas do jogo) — é um dado pessoal, independente da plataforma que outros usuários registraram para o mesmo jogo.
+- Grade de capas dos jogos (estilo Letterboxd/Backloggd), com busca, filtro por plataforma (lista as plataformas individualmente e, com um usuário ativo, só as que ele possui) e por status "zerado".
+- Badges nos cards: quantidade de usuários donos do jogo (sem usuário ativo) ou zerado/não zerado (com usuário ativo), Metascore da crítica e Índice GameLog (sua nota pessoal).
+- Modal de detalhes do jogo: mostra capa e metadados; permite editar nota pessoal, plataforma e marcar como zerado.
+- Ordenação por nome, plataforma, Índice GameLog (nota pessoal) ou Índice Metascore.
+- Validação da nota pessoal (só número inteiro) com mensagem de erro clara em vez de falha silenciosa.
+
+**Limitação conhecida:** se o jogo não corresponder a nenhuma sugestão (nem local, nem da RAWG), o select de plataforma fica sem opções — não há mais campo de texto livre para digitar uma plataforma manualmente nesse caso.
 
 ## Rotas da API consumidas
 
